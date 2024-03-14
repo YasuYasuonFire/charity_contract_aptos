@@ -2,11 +2,10 @@ module charity_protocol::message {
     use std::error;
     use std::signer;
     use std::string;
-    use std::option::Option;
     use aptos_framework::event;
-
     use std::string::String;
     use std::coin::Coin;
+    use std::signer::address_of;
 
     struct Campaign has key {
         owner: address,
@@ -18,16 +17,19 @@ module charity_protocol::message {
         approval_count: u128,
     }
 
-    public fun new(minimum: u128, owner: address): Campaign {
-        Campaign {
-            owner: owner,
-            minimum_contribution: minimum,
-            description: string::utf8(b""),
+    fun init_module(owner: &signer) {
+        let owner_addr = signer::address_of(owner);
+        let empty_description = string::utf8(b"");
+        let campaign = Campaign {
+            owner: owner_addr,
+            minimum_contribution: 1,
+            description: empty_description,
             value: 0,
-            recipient: owner,//In the new method, temporarily store the owner's address.
+            recipient: owner_addr,//In the init method, temporarily store the owner's address.
             now_request: false,
             approval_count: 0,
-        }
+        };
+        move_to(owner, campaign); 
     }
 
     public fun get_minimum(campaign: &Campaign): u128 {
