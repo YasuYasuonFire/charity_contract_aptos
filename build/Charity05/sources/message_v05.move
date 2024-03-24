@@ -1,8 +1,10 @@
-module charity_protocol::message_v04 {
+module charity_protocol::message_v05 {
     use std::error;
     use std::signer;
     use std::string;
     use aptos_framework::event;
+    use aptos_framework::coin::transfer;
+    use aptos_framework::aptos_coin::AptosCoin;
     use std::string::String;
     use std::coin::Coin;
     use std::signer::address_of;
@@ -60,6 +62,10 @@ module charity_protocol::message_v04 {
         charity_ref.now_request = true;
     }
 
+    public entry fun send_apt(from: &signer, owner_addr: address, amount: u64) acquires Charity {
+        let charity_ref = borrow_global<Charity>(owner_addr);
+        transfer<AptosCoin>(from, charity_ref.recipient, amount)
+    }
     public fun approve_request(charity: &mut Charity) {
         // TODO: Implement the function logic here.
     }
