@@ -1,4 +1,4 @@
-module charity_protocol::message_v05 {
+module charity_protocol::message_v06 {
     use std::error;
     use std::signer;
     use std::string;
@@ -11,28 +11,17 @@ module charity_protocol::message_v05 {
 
     struct Charity has key {
         owner: address,
-        minimum_contribution: u128,
+        minimum_contribution: u128,//minimum amount of donation per one sending.
         description: string::String,
-        value: u128,
+        value: u128,//value needed for one proposal
         recipient: address,
         now_request: bool,
         approval_count: u128,
     }
 
     fun init_module(owner: &signer) {
-        let owner_addr = signer::address_of(owner);
-        let empty_description = string::utf8(b"");
-        let charity = Charity {
-            owner: owner_addr,
-            minimum_contribution: 1,
-            description: empty_description,
-            value: 0,
-            recipient: owner_addr,//In the init method, temporarily store the owner's address.
-            now_request: false,
-            approval_count: 0,
-        };
-        move_to(owner, charity); 
     }
+
     #[view]
     public fun get_minimum(account_addr: address): u128 acquires Charity {
         let charity_ref = borrow_global<Charity>(account_addr);
@@ -54,18 +43,31 @@ module charity_protocol::message_v05 {
         charity_ref.recipient
     }
 
-    public entry fun create_request(owner_addr: address, description: string::String, value: u128, recipient: address) acquires Charity {
-        let charity_ref = borrow_global_mut<Charity>(owner_addr);
-        charity_ref.description = description;
-        charity_ref.value = value;
-        charity_ref.recipient = recipient;
-        charity_ref.now_request = true;
+    public entry fun create_request(
+        owner: &signer,
+        minimum_contribution: u128,
+        description: string::String,
+        value: u128,
+        recipient: address
+    ) {
+        let owner_addr = signer::address_of(owner);
+        let charity = Charity {
+            owner: owner_addr,
+            minimum_contribution: minimum_contribution,
+            description: description,
+            value: value,
+            recipient: recipient,
+            now_request: true,
+            approval_count: 0,
+        };
+        move_to(owner, charity);
     }
 
     public entry fun send_apt(from: &signer, owner_addr: address, amount: u64) acquires Charity {
         let charity_ref = borrow_global<Charity>(owner_addr);
         transfer<AptosCoin>(from, charity_ref.recipient, amount)
     }
+
     public fun approve_request(charity: &mut Charity) {
         // TODO: Implement the function logic here.
     }
