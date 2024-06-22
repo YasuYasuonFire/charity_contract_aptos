@@ -1,4 +1,4 @@
-module charity_protocol::message_v07 {
+module charity_protocol::message_v08 {
     use std::error;
     use std::signer;
     use std::string;
@@ -8,6 +8,7 @@ module charity_protocol::message_v07 {
     use std::string::String;
     use std::coin::Coin;
     use std::signer::address_of;
+    use std::vector;
 
     struct Charity has key {
         owner: address,
@@ -17,6 +18,10 @@ module charity_protocol::message_v07 {
         recipient: address,
         now_request: bool,
         approval_count: u128,
+    }
+
+    struct CharityList has key {
+        charities: vector<address>,
     }
 
     #[event]
@@ -35,8 +40,11 @@ module charity_protocol::message_v07 {
         amount: u64,
     }
 
-
     fun init_module(owner: &signer) {
+        let charity_list = CharityList {
+            charities: vector::empty<address>(),
+        };
+        move_to(owner, charity_list);
     }
 
     #[view]
@@ -44,20 +52,29 @@ module charity_protocol::message_v07 {
         let charity_ref = borrow_global<Charity>(account_addr);
         charity_ref.minimum_contribution
     }
+
     #[view]
     public fun get_description(account_addr: address): string::String acquires Charity {
         let charity_ref = borrow_global<Charity>(account_addr);
         charity_ref.description
     }
+
     #[view]
     public fun get_value(account_addr: address): u128 acquires Charity {
         let charity_ref = borrow_global<Charity>(account_addr);
         charity_ref.value
     }
+
     #[view]
     public fun get_recipient(account_addr: address): address acquires Charity {
         let charity_ref = borrow_global<Charity>(account_addr);
         charity_ref.recipient
+    }
+
+    #[view]
+    public fun get_all_charities(): vector<address> acquires CharityList {
+        let charity_list = borrow_global<CharityList>(@0x1);
+        charity_list.charities
     }
 
     public entry fun create_request(
@@ -66,7 +83,7 @@ module charity_protocol::message_v07 {
         description: string::String,
         value: u128,
         recipient: address
-    ) {
+    ) acquires CharityList {
         let owner_addr = signer::address_of(owner);
         let charity = Charity {
             owner: owner_addr,
@@ -78,6 +95,10 @@ module charity_protocol::message_v07 {
             approval_count: 0,
         };
         move_to(owner, charity);
+
+        // Add charity address to the list
+        let charity_list = borrow_global_mut<CharityList>(@0x1);
+        vector::push_back(&mut charity_list.charities, owner_addr);
 
         // Fire Event
         let event = CharityCreatedEvent {
@@ -110,5 +131,4 @@ module charity_protocol::message_v07 {
     public fun finalize_request(charity: &mut Charity) {
         // TODO: Implement the function logic here.
     }
-
 }
